@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "bluebird": "^3.1.5",
-    "node-dir": "^0.1.11"
+    "node-dir": "^0.1.11",
+    "rimraf": "^2.5.2"
   }
 }
