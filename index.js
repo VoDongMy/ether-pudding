@@ -308,7 +308,7 @@ Pudding.synchronizeFunction = function(fn) {
           });
         };
 
-        interval = setInterval(make_attempt, 1000);
+        interval = setInterval(make_attempt, 100);
         make_attempt();
       };
 
