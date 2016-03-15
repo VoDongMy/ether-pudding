@@ -15,12 +15,12 @@
   "license": "MIT License. Copyright Consensys LLC, and authors. All rights reserved.",
   "devDependencies": {
     "chai": "^3.4.1",
-    "ethereumjs-testrpc": "^0.1.1",
+    "ethereumjs-testrpc": "^1.2.1",
     "json-loader": "^0.5.4",
     "mocha": "^2.3.4",
     "solc": "^0.1.6",
     "temp": "^0.8.3",
-    "web3": "^0.15.1",
+    "web3": "^0.15.3",
     "webpack": "^1.12.11"
   },
   "dependencies": {

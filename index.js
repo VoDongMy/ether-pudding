@@ -263,6 +263,9 @@ Pudding.synchronizeFunction = function(fn) {
 
     tx_params = Pudding.merge(Pudding.class_defaults, self.class_defaults, tx_params);
 
+    // work around ethereumjs bug
+    //tx_params.nonce = web3.toHex(new Date().getTime())
+
     return new Promise(function(accept, reject) {
 
       var callback = function(error, tx) {
@@ -287,7 +290,13 @@ Pudding.synchronizeFunction = function(fn) {
 
             if (tx_info.blockHash != null) {
               clearInterval(interval);
-              accept(tx);
+              web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
+                if (tx_receipt.gasUsed >= tx_info.gas) {
+                  reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
+                } else {
+                  accept(tx_receipt);
+                }
+              })
             }
 
             if (attempts >= max_attempts) {

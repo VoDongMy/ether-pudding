@@ -11,13 +11,19 @@ var PuddingLoader = require("../loader");
 
 // Compile first
 var result = solc.compile(fs.readFileSync("./test/Example.sol", {encoding: "utf8"}), 1);
+if (result.contracts == undefined) {
+    console.error(result.errors[0]);
+    throw(Error(result.errors[0]));
+}
+
 var compiled = result.contracts["Example"];
 var abi = JSON.parse(compiled.interface);
 var binary = compiled.bytecode;
 
 // Setup
 var web3 = new Web3();
-web3.setProvider(TestRPC.provider());
+//web3.setProvider(TestRPC.provider());
+web3.setProvider(new web3.providers.HttpProvider("http://localhost:8110")); // geth
 Pudding.setWeb3(web3);
 
 var tests = function(contract_instantiator) {
@@ -36,7 +42,9 @@ var tests = function(contract_instantiator) {
       accounts = accs;
 
       Pudding.defaults({
-        from: accounts[0]
+        from: accounts[0],
+        gasLimit:  3141592,
+        gas:  3141591,
       });
 
       done(err);
@@ -109,6 +117,7 @@ var tests = function(contract_instantiator) {
       // BigNumber passed in a transaction.
       return example.setValue(new Pudding.BigNumber(25));
     }).then(function(tx) {
+      console.log(tx);
       return example.value.call();
     }).then(function(value) {
       assert.equal(value.valueOf(), 25, "Ending value should be twenty-five");
@@ -118,9 +127,27 @@ var tests = function(contract_instantiator) {
       assert.equal(parrot_value.valueOf(), 865, "Parrotted value should equal 865")
     }).then(done).catch(done);
   });
+
+  it("should throw when running out of gas", function(done) {
+    var example;
+    Example.new().then(function(instance) {
+      example = instance;
+      return example.value.call();
+    }).then(function(value) {
+      assert.equal(value.valueOf(), 1, "Starting value should be 1");
+      return example.spendGas(100 , {gas: 400000});
+    }).then(function(tx) {
+      assert.ok(false, "should not have mined a transaction that ran out of gas");
+    }).then(done).catch(function(err) {
+      assert.ok(true , "Threw an exception when ran out of gas");
+      done();
+    });
+  });
 };
 
 describe("Contract abstractions", function() {
+
+  this.timeout(40000);  // enough for stock real node e.g. geth
 
   describe("when using .whisk()", function() {
     tests(function(callback) {
@@ -128,7 +155,7 @@ describe("Contract abstractions", function() {
         abi: abi,
         binary: binary,
         contract_name: "Example",
-        address: "0xe6e1652a0397e078f434d6dda181b218cfd42e01", // random; meant to check default values
+        //address: "0xe6e1652a0397e078f434d6dda181b218cfd42e01", // random; meant to check default values
       }));
     });
   });
@@ -141,7 +168,7 @@ describe("Contract abstractions", function() {
         "Example": {
           abi: abi,
           binary: binary,
-          address: "0xe6e1652a0397e078f434d6dda181b218cfd42e01"
+         // address: "0xe6e1652a0397e078f434d6dda181b218cfd42e01"
         }
       }, dirPath, {removeExisting: true});
 
