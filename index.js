@@ -1,5 +1,47 @@
 var Promise = require("bluebird");
 var pkg = require("./package.json");
+var SolidityCoder = require("web3/lib/solidity/coder.js");
+
+
+Pudding.logParser = function (logs, abi, web3) {
+  var events = [];
+  var self = this;
+  var idx = 0;
+
+  
+  logs.forEach(function(log) {
+    for (var i = 0; i < abi.length; i++) {
+      var event = null;
+      var el = {};
+      var item = abi[i];
+      if (item.type != "event") continue;
+      var signature = item.name + "(" + item.inputs.map(function(input) {return input.type;}).join(",") + ")";
+      var hash = web3.sha3(signature);   // XXX calculate this once and add it to the ABI
+      hash = '0x' + hash.toString();
+      if (hash == log.topics[0]) {
+        event = item;
+        break;
+      }
+    }
+    
+    // this doesn't work if any argument is indexed, because it's moved from log.data
+    // to log.topics.   ugh... deal with this later
+    if (event != null) {
+      var inputs = event.inputs.map(function(input) {return input.type;});
+      var data = SolidityCoder.decodeParams(inputs, log.data.replace("0x", ""));
+      el.index = idx;
+      el.event = event.name;
+      el.args = {};
+      event.inputs.forEach(function(x, i) {
+        el.args[x.name] = data[i];
+      }); 
+      events.push(el)
+      idx++;
+    }
+  })
+
+  return events;
+}
 
 function Pudding(contract) {
   if (!this.abi) {
@@ -15,7 +57,7 @@ function Pudding(contract) {
       if (fn.constant == true) {
         this[fn.name] = this.constructor.promisifyFunction(this.contract[fn.name]);
       } else {
-        this[fn.name] = this.constructor.synchronizeFunction(this.contract[fn.name]);
+        this[fn.name] = this.constructor.synchronizeFunction(this.contract[fn.name], this.contract);
       }
 
       this[fn.name].call = this.constructor.promisifyFunction(this.contract[fn.name].call);
@@ -248,9 +290,10 @@ Pudding.promisifyFunction = function(fn) {
   };
 };
 
-Pudding.synchronizeFunction = function(fn) {
+Pudding.synchronizeFunction = function(fn, contract) {
   var self = this;
   var web3 = Pudding.getWeb3();
+  var thisContract = contract;
   return function() {
     var args = Array.prototype.slice.call(arguments);
     var tx_params = {};
@@ -291,9 +334,16 @@ Pudding.synchronizeFunction = function(fn) {
             if (tx_info.blockHash != null) {
               clearInterval(interval);
               web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
-                if (tx_receipt.gasUsed >= tx_info.gas) {
+                if (e != null) {
+                  reject(new Error(e));
+                } 
+                else if (tx_receipt.gasUsed >= tx_info.gas) {
                   reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
                 } else {
+                  // make sure fields include all the fields from web3 events
+                  var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi, web3);
+                  tx_receipt.type = tx_receipt.logs[0].type;
+                  tx_receipt.logs = logs;
                   accept(tx_receipt);
                 }
               })

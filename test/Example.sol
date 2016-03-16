@@ -10,6 +10,8 @@ contract Example {
   }
   function setValue(uint val) {
     value = val;
+    ExampleEvent(msg.sender, 0xaa, 0xbb);
+    SecondEvent(0xdead, 0xbeefbeef, 0xdeadbeefdeadbeef, "testing123");
   }
   function getValue() constant returns(uint) {
     return value;
@@ -23,5 +25,8 @@ contract Example {
       values.push(i); 
     }
   }
-  event ExampleEvent(address indexed _from);
+  // purposefully designed to trip up any compaction issues with a parser
+  event ExampleEvent(address _from, uint8 foo, uint8 bar);
+  // purposefullly design to be misaligned
+  event SecondEvent(uint16 x, uint32 y, uint z, bytes32 info);
 }

@@ -22,8 +22,8 @@ var binary = compiled.bytecode;
 
 // Setup
 var web3 = new Web3();
-web3.setProvider(TestRPC.provider());
-//web3.setProvider(new web3.providers.HttpProvider("http://localhost:8110")); // geth
+//web3.setProvider(TestRPC.provider());
+web3.setProvider(new web3.providers.HttpProvider("http://localhost:8110")); // geth
 Pudding.setWeb3(web3);
 
 var tests = function(contract_instantiator) {
@@ -52,6 +52,8 @@ var tests = function(contract_instantiator) {
   });
 
   it("should get and set values via methods and get values via .call", function(done) {
+
+
     var example;
     Example.new().then(function(instance) {
       example = instance;
@@ -60,6 +62,10 @@ var tests = function(contract_instantiator) {
       assert.equal(value.valueOf(), 1, "Starting value should be 1");
       return example.setValue(5);
     }).then(function(tx) {
+      //console.log(JSON.stringify(tx.logs, null, 2));
+      assert.notEqual(tx.logs[0].args._from, 0, "first element of first log message should be non-zero");
+      assert.equal(tx.logs[0].args.foo, 0xaa, "Second element of first log message should be correct");
+      assert.equal(tx.logs[0].args.bar, 0xbb, "First element of first log message should be correct");
       return example.value.call();
     }).then(function(value) {
       assert.equal(value.valueOf(), 5, "Ending value should be five");
@@ -117,7 +123,6 @@ var tests = function(contract_instantiator) {
       // BigNumber passed in a transaction.
       return example.setValue(new Pudding.BigNumber(25));
     }).then(function(tx) {
-      console.log(tx);
       return example.value.call();
     }).then(function(value) {
       assert.equal(value.valueOf(), 25, "Ending value should be twenty-five");
