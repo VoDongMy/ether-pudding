@@ -1,6 +1,5 @@
 var Promise = require("bluebird");
 var pkg = require("./package.json");
-var SolidityCoder = require("web3/lib/solidity/coder.js");
 
 
 // fix this issue:
@@ -21,44 +20,24 @@ Pudding.toAscii = function(hex) {
 }       
 
 
-Pudding.logParser = function (logs, abi, web3) {
-  var events = [];
-  var self = this;
-  var idx = 0;
+// XXX move this to a hook function
+var SolidityEvent = require("web3/lib/web3/event.js");
+Pudding.logParser = function (logs, abi) {
 
-  
-  logs.forEach(function(log) {
-    var event = null;
-    var el = {};
-    for (var i = 0; i < abi.length; i++) {
-      var item = abi[i];
-      if (item.type != "event") continue;
-      var signature = item.name + "(" + item.inputs.map(function(input) {return input.type;}).join(",") + ")";
-      var hash = web3.sha3(signature);   // XXX calculate this once and add it to the ABI
-      hash = '0x' + hash.toString();
-      if (hash == log.topics[0]) {
-        event = item;
-        break;
-      }
-    }
-    
-    // this doesn't work if any argument is indexed, because it's moved from log.data
-    // to log.topics.   ugh... deal with this later
-    if (event != null) {
-      var inputs = event.inputs.map(function(input) {return input.type;});
-      var data = SolidityCoder.decodeParams(inputs, log.data.replace("0x", ""));
-      el.index = idx;
-      el.event = event.name;
-      el.args = {};
-      event.inputs.forEach(function(x, i) {
-        el.args[x.name] = data[i];
-      }); 
-      events.push(el)
-      idx++;
-    }
-  })
+    // pattern similar to lib/web3/contract.js:  addEventsToContract()
+    var decoders = abi.filter(function (json) {
+        return json.type === 'event';
+    }).map(function(json) {
+        // note first and third params only required only by enocde and execute;
+        // so don't call those!
+        return new SolidityEvent(null, json, null);
+    });
 
-  return events;
+    return logs.map(function (log) {
+        return decoders.find(function(decoder) {
+            return (decoder.signature() == log.topics[0].replace("0x",""));
+        }).decode(log);
+    })
 }
 
 function Pudding(contract) {
@@ -359,7 +338,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
                   reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
                 } else {
                   // make sure fields include all the fields from web3 events
-                  var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi, web3);
+                  var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
                   tx_receipt.type = tx_receipt.logs[0].type;
                   tx_receipt.logs = logs;
                   accept(tx_receipt);

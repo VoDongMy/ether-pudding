@@ -63,16 +63,17 @@ var tests = function(contract_instantiator) {
       assert.equal(value.valueOf(), 1, "Starting value should be 1");
       return example.setValue(5);
     }).then(function(tx) {
-      //console.log(tx.logs);
       var exampleEvent = tx.logs.find(function(x) { return (x.event == "ExampleEvent") })
       assert.notEqual(exampleEvent.args._from, 0, "first element of first log message should be non-zero");
       assert.equal(exampleEvent.args.foo, 0xaa, "Second element of first log message should be correct");
       assert.equal(exampleEvent.args.bar, 0xbb, "First element of first log message should be correct");
+      assert.equal(exampleEvent.address, example.address, "first log message contract address should be correct");
       var secondEvent = tx.logs.find(function(x) { return (x.event == "SecondEvent") })
       assert.equal(secondEvent.args.x, 0xdead, "First element of second log message should be correct");
       assert.equal(secondEvent.args.y, 0xbeefbeef, "Second element of second log message should be correct");
       assert.equal(secondEvent.args.z, 0xdeadbeefdeadbeefdeadbeefdeadbeef, "third element of second log message should be correct");
       assert.equal(Pudding.toAscii(secondEvent.args.info), "testing123", "Fourth element of second log message should be a string");
+      assert.equal(secondEvent.address, example.address, "second log message contract address should be correct");
       return example.value.call();
     }).then(function(value) {
       assert.equal(value.valueOf(), 5, "Ending value should be five");

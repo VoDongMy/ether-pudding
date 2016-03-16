@@ -27,6 +27,7 @@ contract Example {
   }
   // purposefully designed to trip up any compaction issues with a parser
   event ExampleEvent(address _from, uint8 foo, uint8 bar);
-  // purposefullly design to be misaligned
-  event SecondEvent(uint16 x, uint32 y, uint z, bytes32 info);
+  // purposefullly design to be misaligned, indexed, and every other exception you can think of
+  // see lib/web3/events.js:decode() for how complicated it can get
+  event SecondEvent(uint16 x, uint32 indexed y, uint z, bytes32 info);
 }
