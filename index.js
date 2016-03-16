@@ -3,6 +3,24 @@ var pkg = require("./package.json");
 var SolidityCoder = require("web3/lib/solidity/coder.js");
 
 
+// fix this issue:
+// https://github.com/ethereum/web3.js/issues/337
+Pudding.toAscii = function(hex) {
+    var str = '',
+        i = 0,
+        l = hex.length;
+    if (hex.substring(0, 2) === '0x') {
+        i = 2;
+    }
+    for (; i < l; i+=2) {
+        var code = parseInt(hex.substr(i, 2), 16);
+        if (code === 0) continue; // this is added
+        str += String.fromCharCode(code);
+    }
+    return str;
+}       
+
+
 Pudding.logParser = function (logs, abi, web3) {
   var events = [];
   var self = this;
@@ -10,9 +28,9 @@ Pudding.logParser = function (logs, abi, web3) {
 
   
   logs.forEach(function(log) {
+    var event = null;
+    var el = {};
     for (var i = 0; i < abi.length; i++) {
-      var event = null;
-      var el = {};
       var item = abi[i];
       if (item.type != "event") continue;
       var signature = item.name + "(" + item.inputs.map(function(input) {return input.type;}).join(",") + ")";

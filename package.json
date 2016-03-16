@@ -24,6 +24,7 @@
     "webpack": "^1.12.11"
   },
   "dependencies": {
+    "bignumber": "^1.1.0",
     "bluebird": "^3.1.5",
     "node-dir": "^0.1.11",
     "rimraf": "^2.5.2"

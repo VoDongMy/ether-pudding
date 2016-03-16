@@ -11,7 +11,7 @@ contract Example {
   function setValue(uint val) {
     value = val;
     ExampleEvent(msg.sender, 0xaa, 0xbb);
-    SecondEvent(0xdead, 0xbeefbeef, 0xdeadbeefdeadbeef, "testing123");
+    SecondEvent(0xdead, 0xbeefbeef, 0xdeadbeefdeadbeefdeadbeefdeadbeef, "testing123");
   }
   function getValue() constant returns(uint) {
     return value;

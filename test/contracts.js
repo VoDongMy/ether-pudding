@@ -8,6 +8,7 @@ var TestRPC = require("ethereumjs-testrpc");
 var Web3 = require("web3");
 var PuddingGenerator = require("../generator");
 var PuddingLoader = require("../loader");
+var BigNumber = require('bignumber');
 
 // Compile first
 var result = solc.compile(fs.readFileSync("./test/Example.sol", {encoding: "utf8"}), 1);
@@ -62,10 +63,16 @@ var tests = function(contract_instantiator) {
       assert.equal(value.valueOf(), 1, "Starting value should be 1");
       return example.setValue(5);
     }).then(function(tx) {
-      //console.log(JSON.stringify(tx.logs, null, 2));
-      assert.notEqual(tx.logs[0].args._from, 0, "first element of first log message should be non-zero");
-      assert.equal(tx.logs[0].args.foo, 0xaa, "Second element of first log message should be correct");
-      assert.equal(tx.logs[0].args.bar, 0xbb, "First element of first log message should be correct");
+      //console.log(tx.logs);
+      var exampleEvent = tx.logs.find(function(x) { return (x.event == "ExampleEvent") })
+      assert.notEqual(exampleEvent.args._from, 0, "first element of first log message should be non-zero");
+      assert.equal(exampleEvent.args.foo, 0xaa, "Second element of first log message should be correct");
+      assert.equal(exampleEvent.args.bar, 0xbb, "First element of first log message should be correct");
+      var secondEvent = tx.logs.find(function(x) { return (x.event == "SecondEvent") })
+      assert.equal(secondEvent.args.x, 0xdead, "First element of second log message should be correct");
+      assert.equal(secondEvent.args.y, 0xbeefbeef, "Second element of second log message should be correct");
+      assert.equal(secondEvent.args.z, 0xdeadbeefdeadbeefdeadbeefdeadbeef, "third element of second log message should be correct");
+      assert.equal(Pudding.toAscii(secondEvent.args.info), "testing123", "Fourth element of second log message should be a string");
       return example.value.call();
     }).then(function(value) {
       assert.equal(value.valueOf(), 5, "Ending value should be five");
