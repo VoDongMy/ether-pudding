@@ -46,12 +46,13 @@ Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, thisContract, web
     }
 
     // make sure fields include all the fields from web3 events plus anything useful from tx_info
-    var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
-    tx_receipt.type = tx_receipt.logs[0].type;
-    tx_receipt.logs = logs;
+    if (tx_receipt.logs.length > 0) { 
+        var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
+        tx_receipt.type = tx_receipt.logs[0].type;
+        tx_receipt.logs = logs;
+    }
     tx_receipt.gasSent = tx_info.gas;
     logFunc(tx_receipt);
-
     if (tx_receipt.gasUsed >= tx_info.gas) {
       logFunc(tx_receipt);
       reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
