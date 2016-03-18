@@ -23,8 +23,8 @@ var binary = compiled.bytecode;
 
 // Setup
 var web3 = new Web3();
-//web3.setProvider(TestRPC.provider());
-web3.setProvider(new web3.providers.HttpProvider("http://localhost:8110")); // geth
+web3.setProvider(TestRPC.provider());
+//web3.setProvider(new web3.providers.HttpProvider("http://localhost:8110")); // geth
 Pudding.setWeb3(web3);
 
 var tests = function(contract_instantiator) {
@@ -46,6 +46,8 @@ var tests = function(contract_instantiator) {
         from: accounts[0],
         gasLimit:  3141592,
         gas:  3141591,
+        tx_hook : Pudding.newTx,
+        tx_log: function (tx) { } 
       });
 
       done(err);

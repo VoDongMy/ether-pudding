@@ -4,6 +4,7 @@ var pkg = require("./package.json");
 
 // fix this issue:
 // https://github.com/ethereum/web3.js/issues/337
+// XXX this should really be Pudding.toUTF8
 Pudding.toAscii = function(hex) {
     var str = '',
         i = 0,
@@ -19,25 +20,45 @@ Pudding.toAscii = function(hex) {
     return str;
 }       
 
-
-// XXX move this to a hook function
 var SolidityEvent = require("web3/lib/web3/event.js");
 Pudding.logParser = function (logs, abi) {
 
-    // pattern similar to lib/web3/contract.js:  addEventsToContract()
-    var decoders = abi.filter(function (json) {
-        return json.type === 'event';
-    }).map(function(json) {
-        // note first and third params only required only by enocde and execute;
-        // so don't call those!
-        return new SolidityEvent(null, json, null);
-    });
+  // pattern similar to lib/web3/contract.js:  addEventsToContract()
+  var decoders = abi.filter(function (json) {
+    return json.type === 'event';
+  }).map(function(json) {
+    // note first and third params only required only by enocde and execute;
+    // so don't call those!
+    return new SolidityEvent(null, json, null);
+  });
 
-    return logs.map(function (log) {
-        return decoders.find(function(decoder) {
-            return (decoder.signature() == log.topics[0].replace("0x",""));
-        }).decode(log);
-    })
+  return logs.map(function (log) {
+    return decoders.find(function(decoder) {
+      return (decoder.signature() == log.topics[0].replace("0x",""));
+    }).decode(log);
+  })
+}
+
+Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, thisContract, web3) {
+  web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
+    if (e != null) {
+      reject(new Error(e));
+    }
+
+    // make sure fields include all the fields from web3 events plus anything useful from tx_info
+    var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
+    tx_receipt.type = tx_receipt.logs[0].type;
+    tx_receipt.logs = logs;
+    tx_receipt.gasSent = tx_info.gas;
+    logFunc(tx_receipt);
+
+    if (tx_receipt.gasUsed >= tx_info.gas) {
+      logFunc(tx_receipt);
+      reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
+    } else {
+      accept(tx_receipt);
+    }
+  })
 }
 
 function Pudding(contract) {
@@ -287,6 +308,7 @@ Pudding.promisifyFunction = function(fn) {
   };
 };
 
+
 Pudding.synchronizeFunction = function(fn, contract) {
   var self = this;
   var web3 = Pudding.getWeb3();
@@ -295,6 +317,9 @@ Pudding.synchronizeFunction = function(fn, contract) {
     var args = Array.prototype.slice.call(arguments);
     var tx_params = {};
     var last_arg = args[args.length - 1];
+    //var tx_hooks = { txLogger: function(tx) {console.log("boo!")}, txResultXform: function(tx) { return tx } };
+    var tx_hook; 
+    var tx_log; 
 
     // It's only tx_params if it's an object and not a BigNumber.
     if (Pudding.is_object(last_arg) && last_arg instanceof Pudding.BigNumber == false) {
@@ -302,9 +327,14 @@ Pudding.synchronizeFunction = function(fn, contract) {
     }
 
     tx_params = Pudding.merge(Pudding.class_defaults, self.class_defaults, tx_params);
-
-    // work around ethereumjs bug
-    //tx_params.nonce = web3.toHex(new Date().getTime())
+    tx_hook = Pudding.class_defaults.tx_hook;
+    if (typeof tx_hook === 'undefined' || tx_hook === null || tx_hook === {}) {
+      tx_hook = function(tx, tx_info, logFunc, accept) {logFunc(tx_info); accept(tx)};
+    }
+    tx_log = Pudding.class_defaults.tx_log;
+    if (typeof tx_log === 'undefined' || tx_log === null || tx_log === {}) {
+      tx_log = function(tx){};
+    }
 
     return new Promise(function(accept, reject) {
 
@@ -330,20 +360,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
 
             if (tx_info.blockHash != null) {
               clearInterval(interval);
-              web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
-                if (e != null) {
-                  reject(new Error(e));
-                } 
-                else if (tx_receipt.gasUsed >= tx_info.gas) {
-                  reject(new Error("Transaction " + tx + " used up all gas " + tx_receipt.gasUsed));
-                } else {
-                  // make sure fields include all the fields from web3 events
-                  var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
-                  tx_receipt.type = tx_receipt.logs[0].type;
-                  tx_receipt.logs = logs;
-                  accept(tx_receipt);
-                }
-              })
+              tx_hook(tx, tx_info, tx_log, accept, reject, thisContract, web3);
             }
 
             if (attempts >= max_attempts) {
