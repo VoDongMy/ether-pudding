@@ -318,9 +318,9 @@ Pudding.synchronizeFunction = function(fn, contract) {
     var args = Array.prototype.slice.call(arguments);
     var tx_params = {};
     var last_arg = args[args.length - 1];
-    //var tx_hooks = { txLogger: function(tx) {console.log("boo!")}, txResultXform: function(tx) { return tx } };
     var tx_hook; 
     var tx_log; 
+    var tx_timeout = 0;
 
     // It's only tx_params if it's an object and not a BigNumber.
     if (Pudding.is_object(last_arg) && last_arg instanceof Pudding.BigNumber == false) {
@@ -336,12 +336,17 @@ Pudding.synchronizeFunction = function(fn, contract) {
     if (typeof tx_log === 'undefined' || tx_log === null || tx_log === {}) {
       tx_log = function(tx){};
     }
+    tx_timeout = Pudding.class_defaults.tx_timeout;
+    if (typeof tx_timeout  === 'undefined' || tx_timeout === null || tx_timeout === 0) {
+      tx_timeout = 240000;  // original default with this library
+    }
+
 
     return new Promise(function(accept, reject) {
 
       var callback = function(error, tx) {
         var interval = null;
-        var max_attempts = 240;
+        var max_attempts = tx_timeout / 1000;
         var attempts = 0;
 
         if (error != null) {
@@ -373,7 +378,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
           });
         };
 
-        interval = setInterval(make_attempt, 100);
+        interval = setInterval(make_attempt, 1000);
         make_attempt();
       };
 
