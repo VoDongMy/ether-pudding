@@ -33,13 +33,18 @@ Pudding.logParser = function (logs, abi) {
   });
 
   return logs.map(function (log) {
-    return decoders.find(function(decoder) {
+    decoder = decoders.find(function(decoder) {
       return (decoder.signature() == log.topics[0].replace("0x",""));
-    }).decode(log);
+    })
+    if (decoder) { 
+        return decoder.decode(log);
+    } else { 
+        return log;
+    }
   })
 }
 
-Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, thisContract, web3) {
+Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, abi, web3) {
   web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
     if (e != null) {
       reject(new Error(e));
@@ -47,7 +52,7 @@ Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, thisContract, web
 
     // make sure fields include all the fields from web3 events plus anything useful from tx_info
     if (tx_receipt.logs.length > 0) { 
-        var logs = Pudding.logParser(tx_receipt.logs, thisContract.abi);
+        var logs = Pudding.logParser(tx_receipt.logs, abi);
         tx_receipt.type = tx_receipt.logs[0].type;
         tx_receipt.logs = logs;
     }
@@ -314,6 +319,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
   var self = this;
   var web3 = Pudding.getWeb3();
   var thisContract = contract;
+  var abi = contract.abi;
   return function() {
     var args = Array.prototype.slice.call(arguments);
     var tx_params = {};
@@ -326,7 +332,6 @@ Pudding.synchronizeFunction = function(fn, contract) {
     if (Pudding.is_object(last_arg) && last_arg instanceof Pudding.BigNumber == false) {
       tx_params = args.pop();
     }
-
     tx_params = Pudding.merge(Pudding.class_defaults, self.class_defaults, tx_params);
     tx_hook = Pudding.class_defaults.tx_hook;
     if (typeof tx_hook === 'undefined' || tx_hook === null || tx_hook === {}) {
@@ -339,6 +344,10 @@ Pudding.synchronizeFunction = function(fn, contract) {
     tx_timeout = Pudding.class_defaults.tx_timeout;
     if (typeof tx_timeout  === 'undefined' || tx_timeout === null || tx_timeout === 0) {
       tx_timeout = 240000;  // original default with this library
+    }
+    if(tx_params.abi) {
+        // XXX need to handle multiple ABIs in the future
+        abi = tx_params.abi;
     }
 
 
@@ -366,7 +375,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
 
             if (tx_info.blockHash != null) {
               clearInterval(interval);
-              tx_hook(tx, tx_info, tx_log, accept, reject, thisContract, web3);
+              tx_hook(tx, tx_info, tx_log, accept, reject, abi, web3);
             }
 
             if (attempts >= max_attempts) {

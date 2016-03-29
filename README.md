@@ -12,7 +12,7 @@ Pudding is intended to be used both within Node and within a browser. Although i
 * Transactions can be synchronized with the network, so your app/tests won’t receive thier callbacks until the transactions have been processed -- a big win. (See [this example](https://github.com/ConsenSys/ether-pudding/wiki/When-not-to-use-synchronized-transactions,-and-how-to-do-it) for when not to used network-synchronized transactions.)
 * Contract functions are “promisified” using bluebird. This makes sequential calls and transactions easier to write.
 * Transaction defaults (like a default “from” address) are DRY. You can specify defaults for an individual instance of a contract, for all instances derived from a contract class, or across all Pudding contracts. This makes your code DRY, too.
-* **New** Function hooks are provided for transaction processing and useful hooks provided.  For example, Transaction results for the sent and completion are combined and the event logs parsed, so you can synchronously view your logs, compare gasSent vs. gasUsed, log the transaction to a logfile, etc.   Default behavior is unchanged for backwards compatibility.
+* **New** Function hooks are provided for transaction processing and useful hooks provided.  For example, Transaction results for the sent and completion are combined and the event logs parsed, so you can synchronously view your logs, compare gasSent vs. gasUsed, log the transaction to a logfile, wait for multiple blocks to be mined, etc.   Or, define your own transaction behavior.  Default behavior is unchanged for backwards compatibility.
 * With all of the above, developing on Ethereum gets a whole lot easier.    
 
 ### Install
