@@ -76,7 +76,7 @@ var tests = function(contract_instantiator) {
       assert.equal(secondEvent.args.x, 0xdead, "First element of second log message should be correct");
       assert.equal(secondEvent.args.y, 0xbeefbeef, "Second element of second log message should be correct");
       assert.equal(secondEvent.args.z, 0xdeadbeefdeadbeefdeadbeefdeadbeef, "third element of second log message should be correct");
-      assert.equal(Pudding.toAscii(secondEvent.args.info), "testing123", "Fourth element of second log message should be a string");
+      assert.equal(secondEvent.args.info, "testing123", "Fourth element of second log message should be a string");
       assert.equal(secondEvent.address, example.address, "second log message contract address should be correct");
       return example.value.call();
     }).then(function(value) {
