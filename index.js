@@ -20,6 +20,34 @@ Pudding.toAscii = function(hex) {
     return str;
 }       
 
+
+//
+// This parses a multi-return values into a struct, giving
+// use pseudo-capability of returning structs from solidity,
+// as well as making it consistant with log events.  Note the
+// ABI produced by solidity supports this.
+//
+// it also properly converts bytes32 to usable string
+//
+Pudding.newReturn = function(rv, fnabi) {
+ 
+  newrv = [];
+  if (rv.constructor === Array) {
+    fnabi.outputs.forEach(function(x,i) {
+      if (x.type == 'bytes32') {
+        rv[i] = Pudding.toAscii(rv[i]);
+      }
+      newrv[x.name] = rv[i];
+    })
+    return newrv;
+  } else {
+    if (fnabi.type == 'bytes32') {
+      rv = Pudding.toAscii(rv);
+    }
+    return rv;
+  }
+}
+
 var SolidityEvent = require("web3/lib/web3/event.js");
 Pudding.logParser = function (logs, abi) {
 
@@ -79,12 +107,16 @@ function Pudding(contract) {
     var fn = this.abi[i];
     if (fn.type == "function") {
       if (fn.constant == true) {
-        this[fn.name] = this.constructor.promisifyFunction(this.contract[fn.name]);
+        this[fn.name] = this.constructor.promisifyFunction(this.contract[fn.name], 
+                                                           Pudding.class_defaults.return_hook,
+                                                           fn);
       } else {
         this[fn.name] = this.constructor.synchronizeFunction(this.contract[fn.name], this.contract);
       }
 
-      this[fn.name].call = this.constructor.promisifyFunction(this.contract[fn.name].call);
+      this[fn.name].call = this.constructor.promisifyFunction(this.contract[fn.name].call,
+                                                              Pudding.class_defaults.return_hook,
+                                                              fn);
       this[fn.name].sendTransaction = this.constructor.promisifyFunction(this.contract[fn.name].sendTransaction);
       this[fn.name].request = this.contract[fn.name].request;
       this[fn.name].estimateGas = this.constructor.promisifyFunction(this.contract[fn.name].estimateGas);
@@ -294,7 +326,7 @@ Pudding.merge = function() {
   return merged;
 };
 
-Pudding.promisifyFunction = function(fn) {
+Pudding.promisifyFunction = function(fn, hook, fnabi) {
   var self = this;
   return function() {
     var instance = this;
@@ -315,6 +347,9 @@ Pudding.promisifyFunction = function(fn) {
         if (error != null) {
           reject(error);
         } else {
+          if (hook) {
+            result = hook(result, fnabi);
+          }
           accept(result);
         }
       };

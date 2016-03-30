@@ -13,6 +13,7 @@ Pudding is intended to be used both within Node and within a browser. Although i
 * Contract functions are “promisified” using bluebird. This makes sequential calls and transactions easier to write.
 * Transaction defaults (like a default “from” address) are DRY. You can specify defaults for an individual instance of a contract, for all instances derived from a contract class, or across all Pudding contracts. This makes your code DRY, too.
 * **New** Function hooks are provided for transaction processing and a useful transaction processing function function is provided.  In this function transaction results for the sent and completion stages are combined and the event logs parsed.  This allows you to synchronously view your logs, compare gasSent vs. gasUsed, log the transaction to a logfile, wait for multiple blocks to be mined, etc.   Or, define your own transaction behavior.  Default behavior is unchanged for backwards compatibility.
+* **New** A function hook is provided for return value processing from constant ABI functions.  This allows you to e.g. fix up bytes32 to be an actual string, and to transform multiple return values into a strcture similar to that of events, or anything you can think of.  A function is provided that performs these two transformations.  Default behavior is unchanged for backwards compatibility.
 * With all of the above, developing on Ethereum gets a whole lot easier.    
 
 ### Install

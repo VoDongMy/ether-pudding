@@ -48,6 +48,7 @@ var tests = function(contract_instantiator) {
         gas:  3141591,
         tx_hook : Pudding.newTx,
         tx_log: function (tx) { },
+        return_hook: Pudding.newReturn,
         tx_timeout: 5000
       });
 
@@ -156,6 +157,18 @@ var tests = function(contract_instantiator) {
       assert.ok(false, "should not have mined a transaction that ran out of gas");
     }).then(done).catch(function(err) {
       assert.ok(true , "Threw an exception when ran out of gas");
+      done();
+    });
+  });
+
+  it("Should return multiple values as a struct and convert bytes32 to a string", function(done) {
+    var example;
+    Example.new().then(function(instance) {
+      example = instance;
+      return example.getMulti();
+    }).then(function(struct) {
+      assert.equal(struct.x.toNumber(), 42, "member x should be 42");
+      assert.equal(struct.y, 'the meaning of life', "member x should be 'the meaning of life'");
       done();
     });
   });
