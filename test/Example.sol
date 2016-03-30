@@ -19,6 +19,9 @@ contract Example {
   function getMulti() constant returns(uint x, bytes32 y) {
     return (42, 'the meaning of life');
   }
+  function getBytes32() constant returns(bytes32) {
+    return ('The journey is the reward');
+  }
   function parrot(uint val) returns(uint) {
     return val;
   }

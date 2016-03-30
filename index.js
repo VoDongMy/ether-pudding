@@ -41,7 +41,7 @@ Pudding.newReturn = function(rv, fnabi) {
     })
     return newrv;
   } else {
-    if (fnabi.type == 'bytes32') {
+    if (fnabi.outputs[0].type == 'bytes32') {
       rv = Pudding.toAscii(rv);
     }
     return rv;

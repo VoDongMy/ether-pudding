@@ -169,6 +169,9 @@ var tests = function(contract_instantiator) {
     }).then(function(struct) {
       assert.equal(struct.x.toNumber(), 42, "member x should be 42");
       assert.equal(struct.y, 'the meaning of life', "member x should be 'the meaning of life'");
+      return example.getBytes32();
+    }).then(function(string) {
+      assert.equal(string,'The journey is the reward');
       done();
     });
   });
