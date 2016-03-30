@@ -44,8 +44,8 @@ Pudding.logParser = function (logs, abi) {
   })
 }
 
-Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, abi, web3) {
-  web3.eth.getTransactionReceipt(tx, function(e, tx_receipt) {
+Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, abi, eth) {
+  eth.getTransactionReceipt(tx, function(e, tx_receipt) {
     if (e != null) {
       reject(new Error(e));
     }
@@ -100,7 +100,13 @@ function Pudding(contract) {
 
 Pudding.new = function() {
   var args = Array.prototype.slice.call(arguments);
-  var web3 = Pudding.getWeb3();
+  var web3 = this.web3;
+  if (web3 == undefined) {
+    console.log(this);
+    console.log(new Error().stack);
+    throw(Error("undefined web3, figure out the callstack issue"));
+  }
+  //console.log(this);
 
   if (!this.prototype.binary) {
     throw new Error("Contract binary not set. Please override Pudding and set .binary before calling new()");
@@ -144,7 +150,7 @@ Pudding.new = function() {
 };
 
 Pudding.at = function(address) {
-  var web3 = Pudding.getWeb3();
+  var web3 = this.web3;
   var contract_class = web3.eth.contract(this.prototype.abi);
   var contract = contract_class.at(address);
 
@@ -174,9 +180,12 @@ Pudding.extend = function() {
 };
 
 Pudding.whisk = function(data, constructor) {
+
+/*
   if (this.web3 == null) {
-    throw new Error("Please call Pudding.setWeb3() before calling Pudding.whisk().");
+    throw new Error("Please set data.web3 or call Pudding.setWeb3() before calling Pudding.whisk().");
   }
+*/
 
   var Contract = constructor;
 
@@ -196,6 +205,7 @@ Pudding.whisk = function(data, constructor) {
   Contract.deployed_address = Contract.prototype.deployed_address = data.address; // deprecated
   Contract.generated_with = Contract.prototype.generated_with = data.generated_with;
   Contract.contract_name = Contract.prototype.contract_name = data.contract_name;
+  Contract.web3 = data.web3 || Pudding.getWeb3();
 
   // Post-whisked loads just return the contract.
   Contract.load = function() {
@@ -250,13 +260,13 @@ Pudding.defaults = function(class_defaults) {
 }
 
 Pudding.setWeb3 = function(web3) {
-  this.web3 = web3;
 
-  if (this.web3.toBigNumber == null) {
+  if (web3.toBigNumber == null) {
     throw new Error("Pudding.setWeb3() must be passed an instance of Web3 and not Web3 itself.");
   }
 
-  this.BigNumber = this.web3.toBigNumber(0).constructor;
+  this.BigNumber = web3.toBigNumber(0).constructor;
+  this.web3 = web3;
 };
 
 Pudding.getWeb3 = function() {
@@ -317,7 +327,6 @@ Pudding.promisifyFunction = function(fn) {
 
 Pudding.synchronizeFunction = function(fn, contract) {
   var self = this;
-  var web3 = Pudding.getWeb3();
   var thisContract = contract;
   var abi = contract.abi;
   return function() {
@@ -346,7 +355,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
       tx_timeout = 240000;  // original default with this library
     }
     if(tx_params.abi) {
-        // XXX need to handle multiple ABIs in the future
+        // XXX need to handle multiple ABIs in the future, via an {address,abi} pair
         abi = tx_params.abi;
     }
 
@@ -367,7 +376,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
 
         var make_attempt = function() {
           //console.log "Interval check //{attempts}..."
-          web3.eth.getTransaction(tx, function(e, tx_info) {
+          thisContract._eth.getTransaction(tx, function(e, tx_info) {
             // If there's an error ignore it.
             if (e != null) {
               return;
@@ -375,7 +384,7 @@ Pudding.synchronizeFunction = function(fn, contract) {
 
             if (tx_info.blockHash != null) {
               clearInterval(interval);
-              tx_hook(tx, tx_info, tx_log, accept, reject, abi, web3);
+              tx_hook(tx, tx_info, tx_log, accept, reject, abi, thisContract._eth);
             }
 
             if (attempts >= max_attempts) {

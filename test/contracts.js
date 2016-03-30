@@ -171,6 +171,7 @@ describe("Contract abstractions", function() {
         abi: abi,
         binary: binary,
         contract_name: "Example",
+        web3: web3
         //address: "0xe6e1652a0397e078f434d6dda181b218cfd42e01", // random; meant to check default values
       }));
     });

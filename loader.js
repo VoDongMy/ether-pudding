@@ -52,8 +52,7 @@ var PuddingLoader = {
       }
 
       var names = Pudding.load(factories, scope);
-
-      callback(null, names, contracts);
+callback(null, names, contracts);
     });
   },
 
