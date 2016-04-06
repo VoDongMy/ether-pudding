@@ -73,7 +73,7 @@ Pudding.logParser = function (logs, abi) {
     abis = abi.find(function(json) {
       return (json.type === 'event' && log.event === json.name);
     });
-    if (abis.inputs) {
+    if (abis && abis.inputs) {
         abis.inputs.forEach(function (param, i) {
         if (param.type == 'bytes32') {
             log.args[param.name] = Pudding.toAscii(log.args[param.name]); 
