@@ -70,13 +70,16 @@ Pudding.logParser = function (logs, abi) {
         return log;
     }
   }).map(function (log) {
-    abi.find(function(json) {
+    abis = abi.find(function(json) {
       return (json.type === 'event' && log.event === json.name);
-    }).inputs.forEach(function (param, i) {
-      if (param.type == 'bytes32') {
-        log.args[param.name] = Pudding.toAscii(log.args[param.name]); 
-      }
-    })
+    });
+    if (abis.inputs) {
+        abis.inputs.forEach(function (param, i) {
+        if (param.type == 'bytes32') {
+            log.args[param.name] = Pudding.toAscii(log.args[param.name]); 
+        }
+        })
+    }
     return log;
   })
 }
