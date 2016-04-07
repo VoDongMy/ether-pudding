@@ -424,8 +424,8 @@ Pudding.synchronizeFunction = function(fn, contract) {
         var make_attempt = function() {
           //console.log "Interval check //{attempts}..."
           thisContract._eth.getTransaction(tx, function(e, tx_info) {
-            // If there's an error ignore it.
-            if (e != null) {
+            // If there's an error ignore it.  Sometimes tx_info is null, don't know why
+            if (e != null || tx_info == null) {
               return;
             }
 
