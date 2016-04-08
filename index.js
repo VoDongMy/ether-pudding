@@ -86,7 +86,7 @@ Pudding.logParser = function (logs, abi) {
 
 Pudding.newTx = function(tx, tx_info, logFunc, accept, reject, abi, eth) {
   eth.getTransactionReceipt(tx, function(e, tx_receipt) {
-    if (e != null) {
+    if (e != null || tx_receipt == null) {
       reject(new Error(e));
     }
 
